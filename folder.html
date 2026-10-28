@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f7fb">
+  <title>WoRisGo Google Drive Folder QR Generator & Analytics</title>
+  <script src="https://unpkg.com/qr-code-styling@1.9.2/lib/qr-code-styling.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f4f7fb;color:#172033}
+    .page{width:100%;max-width:1450px;margin:0 auto;padding:28px}
+    .grid{display:grid;grid-template-columns:minmax(320px,.85fr) minmax(0,1.15fr);gap:24px;align-items:start}
+    .card{background:#fff;border:1px solid #dfe6ef;border-radius:18px;box-shadow:0 4px 14px #0f172a12;padding:26px;min-width:0}
+    .card-title{margin:0 0 22px;font-size:22px;font-weight:750}
+    label{display:block;margin-bottom:9px;font-size:14px;font-weight:650;color:#42526b}
+    .url-input{width:100%;min-height:46px;padding:12px 13px;border:1px solid #d7dfeb;border-radius:9px;outline:none;font-size:14px;color:#1e293b;background:#fff}
+    .url-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px #2563eb1a}
+    .help-text{margin:8px 0 18px;font-size:12px;color:#718096;line-height:1.5}
+    .mode-box{margin:16px 0 20px;padding:15px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px}
+    .mode-title{margin-bottom:11px;font-size:13px;font-weight:700;color:#334155}
+    .mode-options{display:flex;flex-wrap:wrap;gap:18px}
+    .mode-option{display:flex;align-items:center;gap:7px;margin:0;font-size:13px;font-weight:550;color:#475569;cursor:pointer}
+    .mode-option input{margin:0;accent-color:#2563eb}
+    .primary-btn,.refresh-btn,.download-qr-btn,.small-btn{border:0;border-radius:9px;font-weight:700;cursor:pointer;transition:.2s}
+    .primary-btn{width:100%;min-height:46px;background:#2864e8;color:#fff;font-size:14px}
+    .primary-btn:hover{background:#1d56d0}.primary-btn:disabled{opacity:.6;cursor:wait}
+    .qr-preview{display:none;margin-top:24px;padding:20px;border:1px solid #e2e8f0;border-radius:12px;text-align:center;background:#fafcff}
+    .qr-preview.show{display:block}#qrContainer{display:flex;justify-content:center;margin:10px 0 18px;overflow:hidden}
+    .qr-info{margin:7px 0;font-size:12px;color:#64748b;overflow-wrap:anywhere}
+    .download-qr-btn{display:inline-block;padding:11px 18px;background:#172033;color:#fff;font-size:13px}
+    .dashboard-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:10px}
+    .dashboard-title{margin:0;font-size:22px;font-weight:750}
+    .connection{display:inline-flex;align-items:center;gap:7px;margin-top:9px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#fff1f1;color:#c62828}
+    .connection-dot{width:8px;height:8px;border-radius:50%;background:#dc2626}
+    .connection.connected{background:#ecfdf3;color:#15803d}.connection.connected .connection-dot{background:#16a34a}
+    .connection.loading{background:#eff6ff;color:#1d4ed8}.connection.loading .connection-dot{background:#2563eb}
+    .refresh-btn{min-height:38px;padding:0 15px;background:#687b96;color:#fff;white-space:nowrap}.refresh-btn:hover{background:#536780}
+    .description{margin:18px 0;color:#465873;font-size:14px;line-height:1.5}
+    .table-wrap{width:100%;overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:650px}
+    th{padding:13px 10px;text-align:left;background:#f6f8fb;color:#40516b;font-size:12px;font-weight:700;border-bottom:1px solid #dfe6ef}
+    td{padding:12px 10px;border-bottom:1px solid #e5eaf1;font-size:13px;color:#334155;vertical-align:middle}
+    tbody tr:hover{background:#fafcff}.empty{text-align:center;padding:32px 10px;color:#64748b;font-style:italic}
+    .destination{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .count{font-weight:750;color:#1e40af}
+    .badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+    .badge.open{background:#eff6ff;color:#2563eb}.badge.download{background:#ecfdf5;color:#15803d}.badge.drive{background:#fff7ed;color:#c2410c}
+    .action-buttons{display:flex;gap:6px;flex-wrap:wrap}
+    .small-btn{padding:7px 9px;font-size:11px}.simulate-btn{background:#e8f0ff;color:#1d4ed8}.delete-btn{background:#fff0f0;color:#c62828}
+    .alert{display:none;margin-bottom:16px;padding:11px 13px;border-radius:9px;font-size:13px;line-height:1.45}
+    .alert.show{display:block}.alert.error{background:#fff1f1;color:#b42318}.alert.success{background:#ecfdf3;color:#15803d}
+    .note{font-size:12px;color:#64748b;line-height:1.5;margin-top:14px}
+    @media(max-width:1050px){.grid{grid-template-columns:1fr}}
+    @media(max-width:600px){.page{padding:12px}.card{padding:18px}.dashboard-header{flex-direction:column}.refresh-btn{width:100%}.mode-options{flex-direction:column;gap:10px}.dashboard-title,.card-title{font-size:20px}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="grid">
+      <section class="card">
+        <h1 class="card-title">📁 Google Drive Folder QR Generator</h1>
+        <div id="generatorAlert" class="alert" role="status" aria-live="polite"></div>
+        <label for="urlInput">Paste Google Drive folder share link</label>
+        <input id="urlInput" class="url-input" type="url" placeholder="https://drive.google.com/drive/folders/FOLDER_ID" autocomplete="url">
+        <p class="help-text">For the folder to open for other people, set General access to “Anyone with the link” and permission to Viewer. The QR opens the Google Drive folder directly.</p>
+        <div class="mode-box">
+          <div class="mode-title">After scanning this QR:</div>
+          <p class="help-text" style="margin:0">Open the shared Google Drive folder in the browser or Drive app. Folder contents and access are controlled by Google Drive permissions.</p>
+        </div>
+        <button id="generateBtn" class="primary-btn" type="button" onclick="generateTrackableQR()">Generate Folder QR</button>
+        <div id="qrPreview" class="qr-preview">
+          <div id="qrContainer"></div>
+          <div id="qrModeInfo" class="qr-info"></div>
+          <div id="qrDestinationInfo" class="qr-info"></div>
+          <button class="download-qr-btn" type="button" onclick="downloadQR()">Download QR PNG</button>
+        </div>
+        <p class="note">The QR encodes the direct Google Drive folder URL, avoiding an intermediate redirect. Anyone scanning it still needs permission to access the folder. Actual scans of direct Drive URLs are not automatically counted.</p>
+      </section>
+
+      <section class="card">
+        <div class="dashboard-header">
+          <div>
+            <h2 class="dashboard-title">📊 Folder QR Analytics Dashboard</h2>
+            <div id="connectionStatus" class="connection"><span class="connection-dot"></span>Connecting to Google Sheets…</div>
+          </div>
+          <button class="refresh-btn" type="button" onclick="loadRecords()">🔄 Refresh</button>
+        </div>
+        <p class="description">Folder QR records are stored in Google Sheets and reloaded when this page opens. Scan counts shown here are updated by the Simulate action; real-world scans of direct Drive URLs are not automatically counted.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Google Drive Folder</th><th>Scan Count</th><th>Last Scanned</th><th>Mode</th><th>Actions</th></tr></thead>
+            <tbody id="recordsBody"><tr><td colspan="5" class="empty">Loading Google Sheets…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+"use strict";
+
+/*
+  Existing Google Apps Script Web App endpoint from your supplied file.
+  It must support JSONP actions: list, create, scan, delete.
+*/
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzky3iSiwMJDuTmHc2ERuTJvrYhX4EJrKo8SiY87o4ADoQCfGLo-vCqsd5Ja4vkPGva/exec";
+
+let qrCode = null;
+let records = [];
+
+document.addEventListener("DOMContentLoaded", loadRecords);
+document.getElementById("urlInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") generateTrackableQR();
+});
+
+function callGoogleScript(params) {
+  return new Promise((resolve, reject) => {
+    if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("PASTE_YOUR")) {
+      reject(new Error("Google Apps Script Web App URL is not configured."));
+      return;
+    }
+    const callbackName = "qrCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    const script = document.createElement("script");
+    let completed = false;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+      script.remove();
+    };
+    const timeout = setTimeout(() => {
+      if (completed) return;
+      completed = true;
+      cleanup();
+      reject(new Error("Google Sheets request timed out. Check Apps Script deployment and permissions."));
+    }, 15000);
+
+    window[callbackName] = response => {
+      if (completed) return;
+      completed = true;
+      cleanup();
+      if (!response || response.success !== true) {
+        reject(new Error(response?.message || response?.error || "Google Apps Script returned an error."));
+      } else {
+        resolve(response);
+      }
+    };
+
+    const query = new URLSearchParams({ ...params, callback: callbackName });
+    script.onerror = () => {
+      if (completed) return;
+      completed = true;
+      cleanup();
+      reject(new Error("Unable to connect to Google Apps Script."));
+    };
+    script.src = GOOGLE_SCRIPT_URL + "?" + query.toString();
+    script.async = true;
+    document.head.appendChild(script);
+  });
+}
+
+async function loadRecords() {
+  setConnection("loading");
+  const tbody = document.getElementById("recordsBody");
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading Google Sheets…</td></tr>';
+  try {
+    const response = await callGoogleScript({ action: "list" });
+    records = Array.isArray(response.records) ? response.records : [];
+    setConnection("connected");
+    renderRecords();
+  } catch (error) {
+    console.error(error);
+    setConnection("failed");
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">Unable to load records. Check that the Apps Script supports JSONP and is deployed for access.</td></tr>';
+  }
+}
+
+function setConnection(status) {
+  const el = document.getElementById("connectionStatus");
+  el.className = "connection" + (status === "connected" ? " connected" : status === "loading" ? " loading" : "");
+  const labels = { connected: "Google Sheets connected", loading: "Connecting to Google Sheets…", failed: "Google Sheets connection failed" };
+  el.innerHTML = '<span class="connection-dot"></span>' + labels[status];
+}
+
+function renderRecords() {
+  const tbody = document.getElementById("recordsBody");
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No QR records found in Google Sheets.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = records.map(record => {
+    const id = String(record.id ?? record.qrId ?? "");
+    const original = String(record.originalUrl ?? record.originalInput ?? record.destinationUrl ?? "");
+    const count = Number(record.scanCount || 0);
+    const lastScanned = formatDisplayDate(record.lastScanned);
+    const mode = record.scanMode === "download" ? "download" : "open";
+    const modeLabel = mode === "download" ? "Request Download" : "Open PDF";
+    const driveBadge = isGoogleDriveUrl(original) ? '<span class="badge drive">Google Drive</span>' : '<span class="badge open">Website / URL</span>';
+    return `<tr>
+      <td><div class="destination" title="${escapeHtml(original)}">${escapeHtml(original)}</div><div style="margin-top:6px">${driveBadge}</div></td>
+      <td><span class="count">${count}</span></td>
+      <td>${escapeHtml(lastScanned)}</td>
+      <td><span class="badge ${mode}">${modeLabel}</span></td>
+      <td><div class="action-buttons">
+        <button class="small-btn simulate-btn" type="button" onclick="simulateScan('${escapeJs(id)}')">Simulate</button>
+        <button class="small-btn delete-btn" type="button" onclick="deleteQR('${escapeJs(id)}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+async function generateTrackableQR() {
+  const input = document.getElementById("urlInput");
+  const button = document.getElementById("generateBtn");
+  const rawUrl = input.value.trim();
+  if (!rawUrl) return showAlert("Please enter a Google Drive folder share link.", "error");
+
+  let parsed;
+  try { parsed = new URL(rawUrl); }
+  catch (_) { return showAlert("Please enter a complete valid URL, including https://.", "error"); }
+  if (!["http:", "https:"].includes(parsed.protocol)) return showAlert("Only HTTP and HTTPS URLs are supported.", "error");
+
+  const drive = isGoogleDriveUrl(rawUrl);
+  const folderId = drive ? extractGoogleDriveFolderId(rawUrl) : "";
+  if (!drive || !folderId) return showAlert("Could not find a Google Drive folder ID. Use a link like drive.google.com/drive/folders/FOLDER_ID.", "error");
+
+  const destinationUrl = "https://drive.google.com/drive/folders/" + encodeURIComponent(folderId);
+  const scanMode = "open";
+
+  button.disabled = true;
+  button.textContent = "Saving QR…";
+  try {
+    const id = generateTrackingId();
+    const response = await callGoogleScript({
+      action: "create",
+      id,
+      originalUrl: rawUrl,
+      destinationUrl,
+      type: "Google Drive Folder",
+      scanMode
+    });
+    if (!response.success) throw new Error(response.message || "Unable to save QR record.");
+
+    // Important: QR contains the direct destination. This avoids a redirect page
+    // that can fail to hand off correctly in iOS Safari.
+    createQR(destinationUrl);
+    document.getElementById("qrPreview").classList.add("show");
+    document.getElementById("qrModeInfo").textContent = "📁 QR opens the Google Drive folder";
+    document.getElementById("qrDestinationInfo").textContent = "QR destination: " + destinationUrl;
+    showAlert("Folder QR generated and record saved to Google Sheets.", "success");
+    await loadRecords();
+  } catch (error) {
+    console.error(error);
+    showAlert(error.message || "Unable to create QR code.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Generate Folder QR";
+  }
+}
+
+function createQR(destinationUrl) {
+  if (typeof QRCodeStyling === "undefined") {
+    showAlert("QR library failed to load. Check your internet connection and reload the page.", "error");
+    return;
+  }
+  const container = document.getElementById("qrContainer");
+  container.innerHTML = "";
+  qrCode = new QRCodeStyling({
+    width: 300,
+    height: 300,
+    type: "canvas",
+    data: destinationUrl,
+    margin: 14,
+    qrOptions: { errorCorrectionLevel: "H" },
+    dotsOptions: { type: "square", color: "#111827" },
+    cornersSquareOptions: { type: "square", color: "#111827" },
+    cornersDotOptions: { type: "square", color: "#111827" },
+    backgroundOptions: { color: "#ffffff" }
+  });
+  qrCode.append(container);
+}
+
+function downloadQR() {
+  if (!qrCode) return showAlert("Generate a QR code first.", "error");
+  qrCode.download({ name: "worisgo-folder-qr", extension: "png" });
+}
+
+async function simulateScan(id) {
+  try {
+    const response = await callGoogleScript({ action: "scan", id });
+    if (!response.success) throw new Error(response.message || "Unable to update scan count.");
+    await loadRecords();
+    showAlert("Simulated scan recorded in Google Sheets. Actual direct-URL scans are not counted automatically.", "success");
+  } catch (error) {
+    console.error(error);
+    showAlert(error.message || "Unable to simulate scan.", "error");
+  }
+}
+
+async function deleteQR(id) {
+  if (!window.confirm("Delete this QR record from Google Sheets?")) return;
+  try {
+    const response = await callGoogleScript({ action: "delete", id });
+    if (!response.success) throw new Error(response.message || "Unable to delete record.");
+    showAlert("QR record deleted from Google Sheets.", "success");
+    await loadRecords();
+  } catch (error) {
+    console.error(error);
+    showAlert(error.message || "Unable to delete record.", "error");
+  }
+}
+
+function isGoogleDriveUrl(url) {
+  try {
+    const host = new URL(String(url || "")).hostname.toLowerCase();
+    return host === "drive.google.com" || host === "docs.google.com";
+  } catch (_) { return false; }
+}
+
+function extractGoogleDriveFolderId(url) {
+  try {
+    const parsed = new URL(String(url || "").trim());
+    const match = parsed.pathname.match(/\/drive\/folders\/([^/?]+)/);
+    if (match) return match[1];
+    const id = parsed.searchParams.get("id");
+    if (id && /drive\.google\.com$/.test(parsed.hostname)) return id;
+  } catch (_) {}
+  return "";
+}
+
+function extractGoogleDriveFileId(url) {
+  try {
+    const parsed = new URL(String(url || "").trim());
+    const pathMatch = parsed.pathname.match(/\/file\/d\/([^/]+)/);
+    if (pathMatch) return pathMatch[1];
+    const id = parsed.searchParams.get("id");
+    if (id) return id;
+    const openMatch = parsed.pathname.match(/\/document\/d\/([^/]+)/);
+    if (openMatch) return openMatch[1];
+  } catch (_) {}
+  return "";
+}
+
+function generateTrackingId() {
+  return "QR-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function formatDisplayDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function showAlert(message, type) {
+  const el = document.getElementById("generatorAlert");
+  el.textContent = message;
+  el.className = "alert show " + (type === "success" ? "success" : "error");
+  clearTimeout(showAlert.timer);
+  showAlert.timer = setTimeout(() => el.classList.remove("show"), 6000);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[ch]);
+}
+function escapeJs(value) {
+  return String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\r/g, "\\r").replace(/\n/g, "\\n");
+}
+</script>
+</body>
+</html>
